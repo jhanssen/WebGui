@@ -190,7 +190,7 @@ int init_imgui()
     // Setup Dear ImGui binding
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui_ImplGlfw_InitForOpenGL(g_window, true);
+    ImGui_ImplGlfw_InitForOther(g_window, true);
     ImGui_ImplWGPU_Init(g_device, 3, g_surfaceFormat, g_depthTextureFormat);
 
     // Setup style
