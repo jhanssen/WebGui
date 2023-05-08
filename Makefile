@@ -6,9 +6,9 @@ SOURCES = main.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_wgpu.cpp
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_widgets.cpp $(IMGUI_DIR)/imgui_tables.cpp
 
-WEBGL_VER = -s USE_WEBGPU=1 -s USE_GLFW=3
+WEBGL_VER = -s USE_WEBGPU=1 -s USE_GLFW=3 -s ASSERTIONS=1
 #WEBGL_VER = USE_GLFW=2
-USE_WASM = -s WASM=1
+USE_WASM = -s WASM=1 -s SINGLE_FILE=1
 
 all: $(SOURCES) $(OUTPUT)
 

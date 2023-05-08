@@ -85,7 +85,7 @@ void loop()
     WGPURenderPassColorAttachment colorAttachment;
     colorAttachment.view = nextTexture;
     colorAttachment.resolveTarget = nullptr;
-    colorAttachment.loadOp = WGPULoadOp_Clear;
+    colorAttachment.loadOp = WGPULoadOp_Load;
     colorAttachment.storeOp = WGPUStoreOp_Store;
     colorAttachment.clearValue = WGPUColor{ 0.05, 0.05, 0.05, 1.0 };
     renderPassDesc.colorAttachmentCount = 1;
@@ -155,16 +155,16 @@ void loop()
     wgpuQueueSubmit(g_queue, 1, &command);
 
     wgpuTextureViewRelease(nextTexture);
-    wgpuSwapChainPresent(g_swapChain);
+    // wgpuSwapChainPresent(g_swapChain);
 }
 
 
-int init_glfw()
+void init_glfw()
 {
     if( !glfwInit() )
     {
         fprintf( stderr, "Failed to initialize GLFW\n" );
-        return 1;
+        return;
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -178,18 +178,20 @@ int init_glfw()
     {
         fprintf( stderr, "Failed to open GLFW window.\n" );
         glfwTerminate();
-        return -1;
+        return;
     }
 
-    return 0;
+    return;
 }
 
 
-int init_imgui()
+void init_imgui()
 {
     // Setup Dear ImGui binding
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    auto ctx = ImGui::CreateContext();
+    ImGui::SetCurrentContext(ctx);
+
     ImGui_ImplGlfw_InitForOther(g_window, true);
     ImGui_ImplWGPU_Init(g_device, 3, g_surfaceFormat, g_depthTextureFormat);
 
@@ -206,8 +208,6 @@ int init_imgui()
     io.Fonts->AddFontDefault();
 
     resizeCanvas();
-
-    return 0;
 }
 
 void ObtainedWebGPUDevice(WGPURequestDeviceStatus status, WGPUDevice device, char const * message, void * userdata)
@@ -231,7 +231,7 @@ void ObtainedWebGPUDevice(WGPURequestDeviceStatus status, WGPUDevice device, cha
     swapDescr.format = g_surfaceFormat;
     swapDescr.width = canvas_get_width();
     swapDescr.height = canvas_get_height();
-    swapDescr.presentMode = WGPUPresentMode_Mailbox;
+    swapDescr.presentMode = WGPUPresentMode_Fifo;
     g_swapChain = wgpuDeviceCreateSwapChain(g_device, g_surface, &swapDescr);
 
     // Create the depth texture
@@ -275,8 +275,8 @@ void ObtainedWebGPUAdapter(WGPURequestAdapterStatus status, WGPUAdapter adapter,
 
 void initWgpu()
 {
-    const WGPUInstanceDescriptor instanceDescr = {};
-    g_instance = wgpuCreateInstance(&instanceDescr);
+    // const WGPUInstanceDescriptor instanceDescr = {};
+    g_instance = nullptr; // wgpuCreateInstance(&instanceDescr);
 
     WGPURequestAdapterOptions adapterOpts = {};
     wgpuInstanceRequestAdapter(g_instance, &adapterOpts, ObtainedWebGPUAdapter, nullptr);
