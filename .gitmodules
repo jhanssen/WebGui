@@ -1,3 +1,6 @@
 [submodule "3rdparty/imgui"]
 	path = 3rdparty/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "3rdparty/zep"]
+	path = 3rdparty/zep
+	url = https://github.com/Rezonality/zep.git

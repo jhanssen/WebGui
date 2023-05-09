@@ -11,13 +11,27 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_wgpu.h"
 #include <iostream>
+#include <filesystem>
+#include <string>
+#ifdef __APPLE__
+# include <mach-o/dyld.h>
+#else
+# include <unistd.h>
+#endif
+
+// oh boy
+namespace fs = std::filesystem;
+
+#include "editor.h"
 
 GLFWwindow* g_window;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 bool show_demo_window = true;
 bool show_another_window = false;
+bool g_zepInited = false;
 int g_width;
 int g_height;
+std::string g_appRoot;
 WGPUInstance g_instance;
 WGPUAdapter g_adapter;
 WGPUDevice g_device;
@@ -107,6 +121,21 @@ void loop()
     renderPassDesc.timestampWrites = nullptr;
     WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
 
+    if (!g_zepInited)
+    {
+        // Called once the fonts/device is guaranteed setup
+        zep_init(Zep::NVec2f(1.0f, 1.0f), g_appRoot);
+        zep_load("hello", "some text\nand some more\ntext here\n");
+        g_zepInited = true;
+    }
+
+    // Required for CTRL+P and flashing cursor.
+    zep_update();
+
+    // // Just show it
+    static Zep::NVec2i size = Zep::NVec2i(640, 480);
+    zep_show(size);
+
     // 1. Show a simple window.
     // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets automatically appears in a window called "Debug".
     {
@@ -150,8 +179,8 @@ void loop()
 
     wgpuRenderPassEncoderEnd(renderPass);
 
-    WGPUCommandBufferDescriptor cmdbufDescr = {};
-    WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdbufDescr);
+    WGPUCommandBufferDescriptor cmdbufDesc = {};
+    WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdbufDesc);
     wgpuQueueSubmit(g_queue, 1, &command);
 
     wgpuTextureViewRelease(nextTexture);
@@ -226,16 +255,16 @@ void ObtainedWebGPUDevice(WGPURequestDeviceStatus status, WGPUDevice device, cha
     g_surface = wgpuInstanceCreateSurface(g_instance, &surfaceDesc);
     g_surfaceFormat = wgpuSurfaceGetPreferredFormat(g_surface, g_adapter);
 
-    WGPUSwapChainDescriptor swapDescr = {};
-    swapDescr.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_CopySrc | WGPUTextureUsage_CopyDst;
-    swapDescr.format = g_surfaceFormat;
-    swapDescr.width = canvas_get_width();
-    swapDescr.height = canvas_get_height();
-    swapDescr.presentMode = WGPUPresentMode_Fifo;
-    g_swapChain = wgpuDeviceCreateSwapChain(g_device, g_surface, &swapDescr);
+    WGPUSwapChainDescriptor swapDesc = {};
+    swapDesc.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_CopySrc | WGPUTextureUsage_CopyDst;
+    swapDesc.format = g_surfaceFormat;
+    swapDesc.width = canvas_get_width();
+    swapDesc.height = canvas_get_height();
+    swapDesc.presentMode = WGPUPresentMode_Fifo;
+    g_swapChain = wgpuDeviceCreateSwapChain(g_device, g_surface, &swapDesc);
 
     // Create the depth texture
-    WGPUTextureDescriptor depthTextureDesc;
+    WGPUTextureDescriptor depthTextureDesc = {};
     depthTextureDesc.dimension = WGPUTextureDimension_2D;
     depthTextureDesc.format = g_depthTextureFormat;
     depthTextureDesc.mipLevelCount = 1;
@@ -251,7 +280,7 @@ void ObtainedWebGPUDevice(WGPURequestDeviceStatus status, WGPUDevice device, cha
     g_depthTexture = wgpuDeviceCreateTexture(g_device, &depthTextureDesc);
 
     // Create the view of the depth texture manipulated by the rasterizer
-    WGPUTextureViewDescriptor depthTextureViewDesc;
+    WGPUTextureViewDescriptor depthTextureViewDesc = {};
     depthTextureViewDesc.aspect = WGPUTextureAspect_DepthOnly;
     depthTextureViewDesc.baseArrayLayer = 0;
     depthTextureViewDesc.arrayLayerCount = 1;
@@ -275,8 +304,8 @@ void ObtainedWebGPUAdapter(WGPURequestAdapterStatus status, WGPUAdapter adapter,
 
 void initWgpu()
 {
-    // const WGPUInstanceDescriptor instanceDescr = {};
-    g_instance = nullptr; // wgpuCreateInstance(&instanceDescr);
+    // const WGPUInstanceDescriptor instanceDesc = {};
+    g_instance = nullptr; // wgpuCreateInstance(&instanceDesc);
 
     WGPURequestAdapterOptions adapterOpts = {};
     wgpuInstanceRequestAdapter(g_instance, &adapterOpts, ObtainedWebGPUAdapter, nullptr);
@@ -284,6 +313,7 @@ void initWgpu()
 
 void quit()
 {
+    zep_destroy();
     glfwTerminate();
 }
 
